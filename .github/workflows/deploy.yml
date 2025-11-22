@@ -33,7 +33,7 @@ jobs:
           cache: "npm"
       
       - name: Instalar dependencias
-        run: npm ci
+        run: npm install
       
       - name: Obtener nombre del repositorio
         id: repo
