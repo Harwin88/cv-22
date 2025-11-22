@@ -76,11 +76,13 @@ const referenciasPersonales = cvData ? getFieldArray(cvData, 'field_referencias_
 const linkLinkedIn = cvData ? getFieldValue(cvData, 'field_lik_linkedin') : 'https://www.linkedin.com/in/harwin-galvis-0a8b48b2/';
 const linkGit = cvData ? getFieldValue(cvData, 'field_link_git') : 'https://github.com/Harwin88';
 // Foto de perfil - puede venir como URL o como objeto con URL
-let fotoPerfil = '/images/avatar.jpg';
+// Usar base URL de Astro para rutas correctas en GitHub Pages
+const base = import.meta.env.BASE_URL;
+let fotoPerfil = `${base}images/avatar.jpg`;
 if (cvData && cvData.field_foto_de_perfil && cvData.field_foto_de_perfil.length > 0) {
   const fotoData = cvData.field_foto_de_perfil[0];
   // Puede venir como value, url, o dentro de un objeto
-  fotoPerfil = fotoData.value || fotoData.url || (fotoData.target_id ? `/files/${fotoData.target_id}` : '/images/avatar.jpg');
+  fotoPerfil = fotoData.value || fotoData.url || (fotoData.target_id ? `${base}files/${fotoData.target_id}` : `${base}images/avatar.jpg`);
 }
 
 // Parsear referencias personales
@@ -134,7 +136,7 @@ function formatText(text: string): string {
         <div class="shadow-1-strong bg-white my-5" id="intro">
           <div class="bg-info text-white">
             <div class="cover bg-image">
-              <img src="/images/header-background.jpg" alt="Header background" />
+              <img src={`${base}images/header-background.jpg`} alt="Header background" />
               <div class="mask" style="background-color: rgba(0, 0, 0, 0.7);backdrop-filter: blur(2px);">
                 <div class="text-center p-5">
                   <div class="avatar p-1">

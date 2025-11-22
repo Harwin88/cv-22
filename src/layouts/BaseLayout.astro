@@ -4,6 +4,8 @@ interface Props {
 }
 
 const { title = "Material Resume" } = Astro.props;
+// Obtener la base URL de Astro (se ajusta automáticamente según la configuración)
+const base = import.meta.env.BASE_URL;
 ---
 
 <!DOCTYPE html>
@@ -11,7 +13,7 @@ const { title = "Material Resume" } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href={`${base}favicon.ico`} />
     <meta name="description" content="CV de Harwin Galvis - Desarrollador Web Full Stack" />
     <title>{title}</title>
     
@@ -24,10 +26,10 @@ const { title = "Material Resume" } = Astro.props;
     </noscript>
     
     <!-- CSS Files -->
-    <link href="/css/font-awesome/css/all.min.css" rel="stylesheet" />
-    <link href="/css/mdb.min.css" rel="stylesheet" />
-    <link href="/css/aos.css" rel="stylesheet" />
-    <link href="/css/main.css" rel="stylesheet" />
+    <link href={`${base}css/font-awesome/css/all.min.css`} rel="stylesheet" />
+    <link href={`${base}css/mdb.min.css`} rel="stylesheet" />
+    <link href={`${base}css/aos.css`} rel="stylesheet" />
+    <link href={`${base}css/main.css`} rel="stylesheet" />
     
     <noscript>
       <style type="text/css">
@@ -43,9 +45,9 @@ const { title = "Material Resume" } = Astro.props;
     
     <!-- Scripts -->
     <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script is:inline src="/scripts/mdb.min.js"></script>
-    <script is:inline src="/scripts/aos.js"></script>
-    <script is:inline src="/scripts/main.js"></script>
+    <script is:inline src={`${base}scripts/mdb.min.js`}></script>
+    <script is:inline src={`${base}scripts/aos.js`}></script>
+    <script is:inline src={`${base}scripts/main.js`}></script>
   </body>
 </html>
 
