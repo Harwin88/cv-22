@@ -1,0 +1,486 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Función para obtener los datos de la API
+async function getCVData() {
+  try {
+    const response = await fetch('https://serviciosalquiler.com/api/v1/hojadevida', {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    // Retornar el primer elemento del array si existe
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('Error fetching CV data:', error);
+    return null;
+  }
+}
+
+// Helper function para obtener el valor de un campo
+function getFieldValue(data: any, fieldName: string): string {
+  if (!data || !data[fieldName] || !Array.isArray(data[fieldName]) || data[fieldName].length === 0) {
+    return '';
+  }
+  return data[fieldName][0].value || '';
+}
+
+// Helper function para obtener array de valores
+function getFieldArray(data: any, fieldName: string): string[] {
+  if (!data || !data[fieldName] || !Array.isArray(data[fieldName])) {
+    return [];
+  }
+  return data[fieldName].map((item: any) => item.value || '').filter((val: string) => val !== '');
+}
+
+// Helper function para parsear habilidades (formato: "Nombre porcentaje= XX")
+function parseSkill(skillString: string): { name: string; percentage: number } {
+  const match = skillString.match(/(.+?)\s+porcentaje\s*=\s*(\d+)/);
+  if (match) {
+    return {
+      name: match[1].trim(),
+      percentage: parseInt(match[2], 10)
+    };
+  }
+  return { name: skillString, percentage: 0 };
+}
+
+// Obtener los datos de la API
+const cvData = await getCVData();
+
+// Extraer los datos con valores por defecto
+const nombreCompleto = cvData ? getFieldValue(cvData, 'field_nombre_completo') : 'Harwin Galvis';
+const profesion = cvData ? getFieldValue(cvData, 'field_profecion') : 'Desarrollador Web Full stack';
+const telefono = cvData ? getFieldValue(cvData, 'field_telefono_celular') : '+573126701425';
+const emailRaw = cvData ? getFieldValue(cvData, 'field_email') : 'harwingalvis88@gmail.com';
+// Limpiar el email si tiene formato HTML
+const email = emailRaw.replace(/<[^>]*>/g, '').trim() || 'harwingalvis88@gmail.com';
+const direccion = cvData ? getFieldValue(cvData, 'field_direccion') : 'trasver 59b -127d - 35 Bogotá Colombia.';
+const edadActual = cvData ? getFieldValue(cvData, 'field_eda_actual') : '34';
+const sobreMi = cvData ? getFieldValue(cvData, 'field_texto_sobre_mi_persona') : '';
+// Obtener arrays de estudios y experiencias (pueden tener múltiples valores)
+const estudiosArray = cvData ? getFieldArray(cvData, 'field_estudios_profecionales') : [];
+const experienciaArray = cvData ? getFieldArray(cvData, 'field_experincia_laboral') : [];
+// Mantener compatibilidad con valores únicos si existen
+const estudios = estudiosArray.length > 0 ? estudiosArray[0] : '';
+const experiencia = experienciaArray.length > 0 ? experienciaArray[0] : '';
+const habilidadesRaw = cvData ? getFieldArray(cvData, 'field_habilidades_tecnicas') : [];
+const habilidades = habilidadesRaw.map(parseSkill);
+const referenciasLaborales = cvData ? getFieldArray(cvData, 'field_referencias_laborales') : [];
+const referenciasPersonales = cvData ? getFieldArray(cvData, 'field_referencias_personales') : [];
+// Nuevos campos
+const linkLinkedIn = cvData ? getFieldValue(cvData, 'field_lik_linkedin') : 'https://www.linkedin.com/in/harwin-galvis-0a8b48b2/';
+const linkGit = cvData ? getFieldValue(cvData, 'field_link_git') : 'https://github.com/Harwin88';
+// Foto de perfil - puede venir como URL o como objeto con URL
+let fotoPerfil = '/images/avatar.jpg';
+if (cvData && cvData.field_foto_de_perfil && cvData.field_foto_de_perfil.length > 0) {
+  const fotoData = cvData.field_foto_de_perfil[0];
+  // Puede venir como value, url, o dentro de un objeto
+  fotoPerfil = fotoData.value || fotoData.url || (fotoData.target_id ? `/files/${fotoData.target_id}` : '/images/avatar.jpg');
+}
+
+// Parsear referencias personales
+function parseReferenciaPersonal(refString: string) {
+  const lines = refString.split('\r\n');
+  const nameLine = lines[0] || '';
+  const phoneLine = lines.find(l => l.toLowerCase().includes('telefono')) || '';
+  const addressLine = lines.find(l => l.toLowerCase().includes('direccion')) || '';
+  
+  const name = nameLine.replace(/^-?\s*/, '').trim();
+  const phone = phoneLine.split(':')[1]?.trim() || '';
+  const address = addressLine.split(':')[1]?.trim() || '';
+  
+  return { name, phone, address };
+}
+
+const referenciasPersonalesParsed = referenciasPersonales
+  .map(parseReferenciaPersonal)
+  .filter(ref => ref.name);
+
+// Formatear texto (reemplazar \r\n por <br>)
+function formatText(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
+}
+---
+
+<BaseLayout title="Harwin Galvis - CV">
+  <header class="d-print-none">
+    <div class="container text-center text-lg-left">
+      <div class="pt-4 clearfix">
+        <h1 class="site-title mb-0">{nombreCompleto}</h1>
+        <div class="site-nav"> 
+          <nav role="navigation">
+            <ul class="nav justify-content-center">
+              <li class="nav-item"><a class="nav-link" href="#about" title="About"><span class="menu-title">About</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="#skills" title="Skills"><span class="menu-title">Skills</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="#experience" title="Experience"><span class="menu-title">Experience</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="#education" title="Education"><span class="menu-title">Education</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="#references" title="References"><span class="menu-title">References</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="#contact" title="Contact"><span class="menu-title">Contact</span></a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <div class="page-content">
+    <div class="container">
+      <div class="resume-container">
+        <div class="shadow-1-strong bg-white my-5" id="intro">
+          <div class="bg-info text-white">
+            <div class="cover bg-image">
+              <img src="/images/header-background.jpg" alt="Header background" />
+              <div class="mask" style="background-color: rgba(0, 0, 0, 0.7);backdrop-filter: blur(2px);">
+                <div class="text-center p-5">
+                  <div class="avatar p-1">
+                    <img class="img-thumbnail shadow-2-strong" src={fotoPerfil} width="160" height="160" alt={nombreCompleto} />
+                  </div>
+                  <div class="header-bio mt-3">
+                    <div data-aos="zoom-in" data-aos-delay="0">
+                      <h2 class="h1">{nombreCompleto}</h2>
+                      <p>{profesion}</p>
+                    </div>
+                    <div class="header-social mb-3 d-print-none" data-aos="zoom-in" data-aos-delay="200">
+                      <nav role="navigation">
+                        <ul class="nav justify-content-center">
+                          <li class="nav-item">
+                            <a class="nav-link" href={linkLinkedIn} title="linkedin" target="_blank" rel="noopener noreferrer">
+                              <i class="fab fa-linkedin"></i>
+                              <span class="menu-title sr-only">LinkedIn</span>
+                            </a>
+                          </li>
+                          <li class="nav-item">
+                            <a class="nav-link" href={linkGit} title="Github" target="_blank" rel="noopener noreferrer">
+                              <i class="fab fa-github"></i>
+                              <span class="menu-title sr-only">Github</span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </div>
+                    <div class="d-print-none">
+                      <button class="btn btn-outline-light btn-lg shadow-sm mt-1 me-3" id="downloadPDF" data-aos="fade-right" data-aos-delay="700">
+                        <i class="fas fa-download me-2"></i>Descargar CV PDF
+                      </button>
+                      <a class="btn btn-info btn-lg shadow-sm mt-1" href="#contact" data-aos="fade-left" data-aos-delay="700">Contáctame</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shadow-1-strong bg-white my-5 p-5" id="about">
+          <div class="about-section">
+            <div class="row">
+              <div class="col-md-6">
+                <h2 class="h2 fw-light mb-4">About Me</h2>
+                {sobreMi ? (
+                  <div set:html={formatText(sobreMi)} />
+                ) : (
+                  <>
+                    <p>¡Hola! Soy Harwin Galvis. Me apasiona el desarrollo de software y estar en constante aprendizaje. Soy experto desarrollador <strong>Web full stack</strong> y cuento con 8 años de experiencia</p>
+                    <p>Estoy en la capacidad de diseñar nuevas arquitecturas, implementando las mejores prácticas de desarrollo de software, garantizando productividad y calidad, he trabajado con herramientas como Angular 7, vuejs, ruby on rails, drupal8 y 9, word press, php 7 .Net MVC, html5 y css con sass, less y stylos, se usar gulp. Entre otras herramientas.</p>
+                  </>
+                )}
+              </div>
+              <div class="col-md-5 offset-lg-1">
+                <div class="row mt-2">
+                  <h2 class="h2 fw-light mb-4">Bio</h2>
+                  <div class="col-sm-5">
+                    <div class="pb-2 fw-bolder"><i class="far fa-calendar-alt pe-2 text-muted" style="width:24px;opacity:0.85;"></i> Age</div>
+                  </div>
+                  <div class="col-sm-7">
+                    <div class="pb-2">{edadActual}</div>
+                  </div>
+                  <div class="col-sm-5">
+                    <div class="pb-2 fw-bolder"><i class="far fa-envelope pe-2 text-muted" style="width:24px;opacity:0.85;"></i> Email</div>
+                  </div>
+                  <div class="col-sm-7">
+                    <div class="pb-2">{email}</div>
+                  </div>
+                  <div class="col-sm-5">
+                    <div class="pb-2 fw-bolder"><i class="fas fa-phone pe-2 text-muted" style="width:24px;opacity:0.85;"></i> Phone</div>
+                  </div>
+                  <div class="col-sm-7">
+                    <div class="pb-2">{telefono}</div>
+                  </div>
+                  <div class="col-sm-5">
+                    <div class="pb-2 fw-bolder"><i class="fas fa-map-marker-alt pe-2 text-muted" style="width:24px;opacity:0.85;"></i> Address</div>
+                  </div>
+                  <div class="col-sm-7">
+                    <div class="pb-2">{direccion}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shadow-1-strong bg-white my-5 p-5" id="skills">
+          <div class="skills-section">
+            <h2 class="h2 fw-light mb-4">Professional Skills</h2>
+            {habilidades.length > 0 ? (
+              <div class="row">
+                <div class="col-md-6">
+                  {habilidades.filter((_, index) => index % 2 === 0).map((skill, index) => {
+                    const delay = (index * 2 + 1) * 100;
+                    const skillLevel = skill.percentage >= 90 ? 'Master' : skill.percentage >= 75 ? 'Expert' : skill.percentage >= 60 ? 'Advance' : 'Beginner';
+                    return (
+                      <div class="mb-3">
+                        <span class="fw-bolder">{skill.name}</span>
+                        <div class="progress my-2 rounded" style="height: 20px">
+                          <div 
+                            class="progress-bar bg-info" 
+                            role="progressbar" 
+                            data-aos="zoom-in-right" 
+                            data-aos-delay={delay} 
+                            data-aos-anchor=".skills-section" 
+                            style={`width: ${skill.percentage}%`}
+                            aria-valuenow={skill.percentage}
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                          >
+                            {skillLevel}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div class="col-md-6">
+                  {habilidades.filter((_, index) => index % 2 === 1).map((skill, index) => {
+                    const delay = ((index * 2 + 2) + 1) * 100;
+                    const skillLevel = skill.percentage >= 90 ? 'Master' : skill.percentage >= 75 ? 'Expert' : skill.percentage >= 60 ? 'Advance' : 'Beginner';
+                    return (
+                      <div class="mb-3">
+                        <span class="fw-bolder">{skill.name}</span>
+                        <div class="progress my-2 rounded" style="height: 20px">
+                          <div 
+                            class="progress-bar bg-secondary" 
+                            role="progressbar" 
+                            data-aos="zoom-in-right" 
+                            data-aos-delay={delay} 
+                            data-aos-anchor=".skills-section" 
+                            style={`width: ${skill.percentage}%`}
+                            aria-valuenow={skill.percentage}
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                          >
+                            {skillLevel}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p>No hay habilidades disponibles.</p>
+            )}
+          </div>
+        </div>
+
+        <div class="shadow-1-strong bg-white my-5 p-5" id="experience">
+          <div class="work-experience-section">
+            <h2 class="h2 fw-light mb-4">Work Experience</h2>
+            {experienciaArray.length > 0 ? (
+              <div class="timeline">
+                {experienciaArray.map((exp, index) => (
+                  <div class="timeline-card timeline-card-info" data-aos="fade-in" data-aos-delay={index * 200}>
+                    <div class="timeline-body px-4 pb-4">
+                      <div set:html={formatText(exp)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div class="timeline">
+              <div class="timeline-card timeline-card-info" data-aos="fade-in" data-aos-delay="0">
+                <div class="timeline-head px-4 pt-3">
+                  <div class="h5">Full stack <span class="text-muted h6">Bavaria</span></div>
+                </div>
+                <div class="timeline-body px-4 pb-4">
+                  <div class="text-muted text-small mb-3">Marzo, 2021 - Agosto 2022</div>
+                  <div>Trabaje con diferentes Herramientas como Drupal(7, 8, 9), Node.js express, firebase, angular 12, sass, Jira, notion, github y rest apis. 
+                    <b>Logros:</b> <div>Migración de los sitios de las diferentes marcas, de drupal 7 a drupal 8, creacion de script bash de automatización de procesos, participe en la mejora del sso, participe en desarrollo de módulo custom rest api para la integración del sistema de fidelización mediante el intercambio de puntos por productos o entradas a eventos, desarrollo de diferentes end point en node js para reportes, y nuevas funcionalidades en la plataforma tapit, alcanzando un incremento del 20 % en las ventas de cerveza a nivel nacional mediante el uso de la plataforma.</div>
+                    <b>Jefe Imediato:</b> Gerson Angel. <div>
+                    <b>Phone:</b>+57 312 3802160.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="timeline-card timeline-card-info" data-aos="fade-in" data-aos-delay="200">
+                <div class="timeline-head px-4 pt-3">
+                  <div class="h5">desarrollo de software <span class="text-muted h6">Freelancer.</span></div>
+                </div>
+                <div class="timeline-body px-4 pb-4">
+                  <div class="text-muted text-small mb-3">Abril 2018 a Septiembre 2019</div>
+                  <div>desarrollo de software para una plataforma web de agregacion de clientes y mercadeo
+                    <div>
+                      <b>Logros:</b> 
+                      Back-end REST con Ruby on Rails
+                      - Persistencia en base de datos Postgres utilizando tipos de columna tradicionales y tambien JSON
+                      - Front-end Angular.
+                      - Formularios dinamicos embebidos FormiO
+                      - Control de versionamiento Git
+                      - Portal de comunidad integrado en Wordpress
+                    </div>
+                    <b>Jefe Imediato:</b>Julian Gomez.
+                  </div>
+                </div>
+              </div>
+              <div class="timeline-card timeline-card-info" data-aos="fade-in" data-aos-delay="400">
+                <div class="timeline-head px-4 pt-3">
+                  <div class="h5">Ingeniero de Automatización <span class="text-muted h6">GIGA</span></div>
+                </div>
+                <div class="timeline-body px-4 pb-4">
+                  <div class="text-muted text-small mb-3">septiembre 2016 - Abril, 2018</div>
+                  <div>Implementación de sistemas scadas para el control de procesos en las diferentes líneas de producción de ternium, donde se usó tecnologías C++, mysql, .net, qnx 6, windows, resde de alta disponibilidad, procesos de respaldo, configuración de servidores qnx 6.</div>
+                  <b>Logros:</b>Mejorar la seguridad en las diferentes líneas de producción, Mejorar la producción en un 30%, implementación de sistema de recetas en los trenes de laminación 1 y 2, integración con el sistema de piso de planta, creación de reportes de producción.
+                </div>
+              </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div class="shadow-1-strong bg-white my-5 p-5" id="education">
+          <div class="education-section">
+            <h2 class="h2 fw-light mb-4">Education</h2>
+            {estudiosArray.length > 0 ? (
+              <div class="timeline">
+                {estudiosArray.map((estudio, index) => (
+                  <div class="timeline-card timeline-card-success" data-aos="fade-in" data-aos-delay={index * 200}>
+                    <div class="timeline-body px-4 pb-4">
+                      <div set:html={formatText(estudio)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div class="timeline">
+                <div class="timeline-card timeline-card-success" data-aos="fade-in" data-aos-delay="0">
+                  <div class="timeline-head px-4 pt-3">
+                    <div class="h5">Ingeniero En sistemas y telecomunicaciones <span class="text-muted h6">Universidad de Manizales</span></div>
+                  </div>
+                  <div class="timeline-body px-4 pb-4">
+                    <div class="text-muted text-small mb-3">2011 - 2016</div>
+                    <div>Es capaz de proponer soluciones a problemas en pequeña y gran escala. Su formación, le permite, también, ser líder en temas tecnológicos y científicos. Formular propuestas para la solución de problemas reales mediante el uso de la tecnologías y las matemáticas aplicadas.</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div class="shadow-1-strong bg-white my-5 p-5" id="references">
+          <div class="reference-section">
+            <h2 class="h2 fw-light mb-4">References</h2>
+            {(referenciasPersonalesParsed.length > 0 || referenciasLaborales.length > 0) ? (
+              <div class="row">
+                {referenciasPersonalesParsed.map((ref, index) => (
+                  <div class="col-md-6">
+                    <div class="d-flex mb-2">
+                      <div class="avatar"></div>
+                      <div class="header-bio m-3 mb-0">
+                        <h3 class="h6 mb-1" data-aos="fade-left" data-aos-delay={index * 100}>{ref.name}</h3>
+                        <p class="text-muted text-small" data-aos="fade-left" data-aos-delay={index * 100 + 100}>
+                          {ref.address && <><b>Dirección:</b> {ref.address}<br /></>}
+                          {ref.phone && <><b>Phone:</b> {ref.phone}</>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {referenciasPersonalesParsed.length === 0 && referenciasLaborales.length > 0 && referenciasLaborales.map((ref, index) => (
+                  <div class="col-md-6">
+                    <div class="d-flex mb-2">
+                      <div class="avatar"></div>
+                      <div class="header-bio m-3 mb-0">
+                        <p class="text-muted text-small" data-aos="fade-left" data-aos-delay={index * 100} set:html={formatText(ref)}>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="d-flex mb-2">
+                    <div class="avatar"></div>
+                    <div class="header-bio m-3 mb-0">
+                      <h3 class="h6 mb-1" data-aos="fade-left" data-aos-delay="0">Félix Antonio Céspedes Giraldo</h3>
+                      <p class="text-muted text-small" data-aos="fade-left" data-aos-delay="100">Analista de presupuesto / Alcaldia de Manizales
+                        <b>Phone:</b>+57 314 6564208.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="d-flex mb-2">
+                    <div class="avatar"></div>
+                    <div class="header-bio m-3 mb-0">
+                      <h3 class="h6 mb-1" data-aos="fade-left" data-aos-delay="0">Porfirio Buendia</h3>
+                      <p class="text-muted text-small" data-aos="fade-left" data-aos-delay="100">TL / Grupo Modelo Mexico. <b>Phone:</b> +52 1 55 2051 0599</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div class="shadow-1-strong bg-white my-5 p-5" id="contact">
+          <div class="contant-section">
+            <h2 class="h2 fw-light text mb-4">Contact</h2>
+            <div class="row mb-4">
+              <div class="col-md-5" data-aos="fade-left" data-aos-delay="200">
+                <div class="mt-1">
+                  <div class="h6"><i class="fas fa-phone pe-2 text-muted" style="width:24px;opacity:0.85;"></i> {telefono}</div>
+                  <div class="h6"><i class="far fa-envelope pe-2 text-muted" style="width:24px;opacity:0.85;"></i> {email}</div>
+                </div>
+              </div>
+              <div class="col-md-7 d-print-none" data-aos="zoom-in" data-aos-delay="100">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.3147213211923!2d-74.07450368502859!3d4.71528994284332!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f8528bf644f85%3A0xbe598c0c45c5de22!2sTv.%2059b%2C%20Suba%2C%20Bogot%C3%A1!5e0!3m2!1ses!2sco!4v1661500838036!5m2!1ses!2sco" width="500" height="400" style="border:0;width:100%;" allowfullscreen="" loading="lazy"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer class="pt-4 pb-4 text-muted text-center d-print-none">
+    <div class="container">
+      <div class="my-3">
+        <div class="h4">{nombreCompleto}</div>
+        <div class="footer-nav">
+          <nav role="navigation">
+            <ul class="nav justify-content-center">
+              <li class="nav-item">
+                <a class="nav-link" href={linkLinkedIn} title="linkedin" target="_blank" rel="noopener noreferrer">
+                  <i class="fab fa-linkedin"></i>
+                  <span class="menu-title sr-only">LinkedIn</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href={linkGit} title="Github" target="_blank" rel="noopener noreferrer">
+                  <i class="fab fa-github"></i>
+                  <span class="menu-title sr-only">Github</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </footer>
+</BaseLayout>
+
